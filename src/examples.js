@@ -20,7 +20,7 @@ chip n img = pixelate n img
 ink a b img = img |> duotone a b
 frame k img = vignette k img`,
 
-      'input |> split 6 |> tear 3 |> smear 0.004 |> soften 0.003 |> chip 4 |> ink (#12002b) (#59f7ff) |> frame 0.5',
+      'input |> split 6 |> tear 3 |> smear 1 |> soften 1 |> chip 4 |> ink (#12002b) (#59f7ff) |> frame 0.5',
     ],
   },
 
@@ -37,9 +37,9 @@ thicken k img = dilate k img
 paper img = invert img
 shade k img = vignette k img`,
 
-      'sketch k img = img |> flatten |> dust 0.002 |> smooth 0.002 |> ink k |> thicken 0.002 |> paper |> shade 0.45',
+      'sketch k img = img |> flatten |> dust 1 |> smooth 1 |> ink k |> thicken 1 |> paper |> shade 0.45',
 
-      'input |> sketch 0.004',
+      'input |> sketch 1',
     ],
   },
 
@@ -57,11 +57,11 @@ tone img = img |> duotone (#06283d) (#e0fbfc)
 frame img = img |> vignette 0.4`,
 
       `-- unsharp mask: compare against a blurred copy and add back the difference
-sharpen k img = let low = blur 0.003 img in img |> mapPx (\\(uv, c) -> c + (c - sample low uv) * k)`,
+sharpen s img = let low = blur 1 img in img |> mapPx (\\(uv, c) -> c + (c - sample low uv) * s)`,
 
-      'restore k img = img |> clean k |> opening k |> tone |> sharpen k |> frame',
+      'restore r img = img |> clean r |> opening r |> tone |> sharpen 0.9 |> frame',
 
-      'input |> speckle 0.5 |> restore 0.004',
+      'input |> speckle 0.5 |> restore 1',
     ],
   },
 
@@ -81,7 +81,7 @@ paper img = img |> vignette 0.5`,
       `-- blending two images: the pixel function closes over 'top' and samples it
 blend k top img = img |> mapPx (\\(uv, c) -> mix c (sample top uv) k)`,
 
-      'under = input |> bands 4 |> coarse 16 |> melt 0.002 |> ink (#101820) (#f2aa4c)\nover = input |> grayscale |> lines 0.003 |> grow 0.002 |> invert',
+      'under = input |> bands 4 |> coarse 16 |> melt 1 |> ink (#101820) (#f2aa4c)\nover = input |> grayscale |> lines 1 |> grow 1 |> invert',
 
       'under |> blend 0.35 over |> paper',
     ],
@@ -104,9 +104,9 @@ warm img = img |> duotone (#2b1d0e) (#ffe6b3)
 frame img = img |> vignette 0.75
 
 flat = input |> grayscale
-glow = flat |> lift 0.006 |> bloom 0.012`,
+glow = flat |> lift 2 |> bloom 3`,
 
-      'flat |> dust 0.003 |> warm |> addGlow 0.6 glow |> grain 0.22 |> frame',
+      'flat |> dust 1 |> warm |> addGlow 0.6 glow |> grain 0.22 |> frame',
     ],
   },
 ];

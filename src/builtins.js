@@ -162,7 +162,9 @@ function sampleColor(window, x, y) {
 
 function applyStencil(image, radius, fn, mode, ctx, node) {
   const { width, height, data } = image;
-  const pixels = Math.max(0, Math.round(radius * height));
+  const reference = ctx && ctx.referenceHeight ? ctx.referenceHeight : height;
+  const scale = reference > 0 ? height / reference : 1;
+  const pixels = Math.max(0, Math.round(radius * scale));
   const out = new Float32Array(width * height * 4);
   const window = { type: 'window', image, x: 0, y: 0, radius: pixels, mode };
   for (let y = 0; y < height; y++) {

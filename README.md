@@ -92,12 +92,12 @@ cut k x = if x > k then x else x * k
 
 ### Pipelines
 
-`img |> grayscale |> blur 0.004 |> invert` reads top to bottom. Pipelines are
+`img |> grayscale |> blur 1 |> invert` reads top to bottom. Pipelines are
 ordinary values — pass them to functions, return them, put them in tuples:
 
 ```
 twice f img = img |> f |> f
-twice (blur 0.25) input
+twice (blur 1) input
 ```
 
 ### Operators, loosest to tightest
@@ -144,9 +144,10 @@ center at neighbors pos
   image. `c` is the pixel colour. This is the only place the language loops over
   pixels.
 - `stencil r f img` — `f` receives a window over the neighbourhood; `r` is a
-  radius as a fraction of image *height*, so effects look the same at any
-  resolution. `stencilWrap` and `stencilMirror` change the edge handling
-  (default clamps).
+  radius in **pixels**, measured against the full-resolution render. Thumbnails
+  are rendered smaller, so `r` is scaled down proportionally there (a radius of
+  2 at 256 px becomes 1 at 128 px). `stencilWrap` and `stencilMirror` change the
+  edge handling (default clamps).
 - Window API: `center w`, `at w (dx, dy)`, `neighbors w` (every pixel in the
   box), `pos w` → the `(x, y)` being computed.
 - `sample img uv` — the colour at a normalised coordinate.
@@ -171,7 +172,7 @@ vignette duotone mod pixelate glitch zoom
 so the demo effects stay short and readable:
 
 ```
-input |> grayscale |> blur 0.003 |> edges 0.004 |> invert
+input |> grayscale |> blur 1 |> edges 1 |> invert
 ```
 
 ## Examples

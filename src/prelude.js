@@ -1,5 +1,5 @@
 export const PRELUDE = [
-  '-- box blur: the mean over a window whose radius is a fraction of image height',
+  '-- box blur: the mean over a window of radius r pixels (previews scale r down)',
   'blur r = stencil r (\\w -> mean (neighbors w))',
 
   '-- max/min filters: dilate brightens, erode darkens',

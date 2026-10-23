@@ -190,6 +190,32 @@ runPixelCases(stencilCases, stencilInput);
 runPixelCases(preludeCases, stencilInput, { prelude: PRELUDE });
 
 {
+  const size = 9;
+  const data = new Float32Array(size * size * 4);
+  for (let y = 0; y < size; y++) {
+    for (let x = 0; x < size; x++) {
+      const i = (y * size + x) * 4;
+      data[i] = x === 4 ? 1 : 0;
+      data[i + 1] = 0;
+      data[i + 2] = 0;
+      data[i + 3] = 1;
+    }
+  }
+  const lines = createImage(size, size, data);
+  const centre = (image) => round4(image.data[(4 * size + 4) * 4]);
+
+  const full = evaluate('input |> blur 2', { input: lines, prelude: PRELUDE }).value;
+  const half = evaluate('input |> blur 2', {
+    input: lines,
+    prelude: PRELUDE,
+    referenceHeight: size * 2,
+  }).value;
+
+  check('a stencil radius is a pixel count', centre(full), 0.2);
+  check('a stencil radius scales down for a smaller render', centre(half), 0.3333);
+}
+
+{
   const labelled = evaluate('debug "hello" input', { input: testInput }).value;
   check('debug labels its image', labelled.label, 'hello');
   check('debug passes the image through', `${labelled.width}x${labelled.height}`, '2x2');

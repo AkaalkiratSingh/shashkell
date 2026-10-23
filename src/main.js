@@ -48,7 +48,7 @@ let updateTimer = null;
 let outputImage = null;
 
 function ctxFor(input) {
-  return { input, prelude: PRELUDE };
+  return { input, prelude: PRELUDE, referenceHeight: fullInput.height };
 }
 
 populateExamples();
