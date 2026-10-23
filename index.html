@@ -14,7 +14,8 @@
           <button id="run" type="button">Run</button>
         </header>
         <textarea id="editor" spellcheck="false" autocomplete="off">-- shaskell: a functional shader language for images
-input |> invert
+twice f = \x -> f (f x)
+twice (\x -> x * 2) 3
 </textarea>
         <pre id="log" class="log" aria-live="polite"></pre>
       </section>

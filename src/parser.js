@@ -23,6 +23,12 @@ const APPLY_BP = 8;
 const SWIZZLE_BP = 9;
 const UNARY_BP = 7;
 
+function at(node, token) {
+  node.line = token.line;
+  node.col = token.col;
+  return node;
+}
+
 class Parser {
   constructor(tokens) {
     this.tokens = tokens;
@@ -77,14 +83,14 @@ class Parser {
 
       if (this.startsAtom(token)) {
         if (APPLY_BP < minBp) break;
-        left = ast.App(left, this.parseExpression(APPLY_BP + 1));
+        left = at(ast.App(left, this.parseExpression(APPLY_BP + 1)), token);
         continue;
       }
 
       const bp = token.type === 'op' ? INFIX[token.value] : undefined;
       if (bp === undefined || bp < minBp) break;
       this.next();
-      left = ast.BinOp(token.value, left, this.parseExpression(bp + 1));
+      left = at(ast.BinOp(token.value, left, this.parseExpression(bp + 1)), token);
     }
     return left;
   }
@@ -102,7 +108,7 @@ class Parser {
     }
     if (token.type === 'ident') {
       this.next();
-      return ast.Var(token.value);
+      return at(ast.Var(token.value), token);
     }
     if (token.type === 'keyword' && (token.value === 'true' || token.value === 'false')) {
       this.next();
@@ -113,7 +119,7 @@ class Parser {
     if (token.type === 'op' && token.value === '\\') return this.parseLambda();
     if (token.type === 'op' && token.value === '-') {
       this.next();
-      return ast.UnaryOp('-', this.parseExpression(UNARY_BP));
+      return at(ast.UnaryOp('-', this.parseExpression(UNARY_BP)), token);
     }
     if (token.type === 'punct' && token.value === '(') return this.parseParen();
 
@@ -121,9 +127,9 @@ class Parser {
   }
 
   parseSwizzle(target) {
-    this.next();
+    const dot = this.next();
     const field = this.eat('ident', undefined, 'a swizzle field');
-    return ast.Swizzle(target, field.value);
+    return at(ast.Swizzle(target, field.value), dot);
   }
 
   parseParen() {

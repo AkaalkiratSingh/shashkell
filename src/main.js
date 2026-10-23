@@ -1,6 +1,6 @@
 import { createImage, drawImage } from './image.js';
-import { parse } from './parser.js';
-import { print } from './ast.js';
+import { evaluate } from './eval.js';
+import { formatValue } from './values.js';
 
 const canvas = document.getElementById('output');
 const editor = document.getElementById('editor');
@@ -12,9 +12,9 @@ drawImage(canvas, input);
 
 runButton.addEventListener('click', () => {
   try {
-    const program = parse(editor.value);
-    console.log(program);
-    showLog(print(program));
+    const { value } = evaluate(editor.value);
+    console.log(value);
+    showLog(formatValue(value));
   } catch (err) {
     showLog(err.toString(), true);
   }

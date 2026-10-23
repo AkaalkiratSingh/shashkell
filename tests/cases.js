@@ -173,3 +173,51 @@ export const parserErrorCases = [
   { name: 'invalid declaration target', source: '1 + 2 = 3' },
   { name: 'missing else', source: 'if a then b' },
 ];
+
+export const evalCases = [
+  { name: 'arithmetic precedence', source: '1 + 2 * 3', expected: '7' },
+  { name: 'parentheses', source: '(1 + 2) * 3', expected: '9' },
+  { name: 'mixed arithmetic', source: '2 + 3 * 4 - 1', expected: '13' },
+  { name: 'division', source: '10 / 4', expected: '2.5' },
+  { name: 'negation', source: '-(3) + 10', expected: '7' },
+  {
+    name: 'twice (done-check)',
+    source: 'twice f = \\x -> f (f x)\ntwice (\\x -> x * 2) 3',
+    expected: '12',
+  },
+  { name: 'tuple broadcast (done-check)', source: '(1, 2, 3) * 2', expected: '(2, 4, 6)' },
+  { name: 'tuple broadcast both sides', source: '(1, 2, 3) + (10, 20, 30)', expected: '(11, 22, 33)' },
+  { name: 'scalar on the left', source: '2 * (1, 2, 3)', expected: '(2, 4, 6)' },
+  { name: 'negate a tuple', source: '-(1, 2)', expected: '(-1, -2)' },
+  { name: 'swizzle one component', source: '(1, 2, 3).y', expected: '2' },
+  { name: 'swizzle reorder', source: '(10, 20, 30, 40).wz', expected: '(40, 30)' },
+  { name: 'let in', source: 'let y = 2 in y * y', expected: '4' },
+  { name: 'if taken', source: 'if 2 > 1 then 10 else 20', expected: '10' },
+  { name: 'if not taken', source: 'if 1 > 2 then 10 else 20', expected: '20' },
+  { name: 'short circuit and', source: 'false && missing', expected: 'false' },
+  { name: 'short circuit or', source: 'true || missing', expected: 'true' },
+  { name: 'recursion', source: 'fact n = if n == 0 then 1 else n * fact (n - 1)\nfact 5', expected: '120' },
+  { name: 'partial application', source: 'add a b = a + b\nadd2 = add 2\nadd2 5', expected: '7' },
+  { name: 'curried builtin', source: 'min 3 5', expected: '3' },
+  { name: 'partially applied builtin', source: 'mx = max 3\nmx 5', expected: '5' },
+  { name: 'equality', source: '(1 + 1) == 2', expected: 'true' },
+  { name: 'inequality', source: '3 /= 4', expected: 'true' },
+  { name: 'pipe chain', source: 'inc x = x + 1\ndouble x = x * 2\n3 |> inc |> double', expected: '8' },
+  { name: 'color component', source: '(#00ff00).g', expected: '1' },
+  { name: 'color expands to a tuple', source: '#ff8000', expected: '(1, 0.5019607843137255, 0)' },
+];
+
+export const evalErrorCases = [
+  { name: 'unknown name', source: 'blurr 1' },
+  { name: 'apply a non-function', source: '1 2' },
+  { name: 'arithmetic on a boolean', source: '1 + true' },
+  { name: 'unknown swizzle', source: '(1, 2).q' },
+  { name: 'swizzle out of range', source: '(1, 2).z' },
+  { name: 'non-boolean condition', source: 'if 1 then 2 else 3' },
+  { name: 'tuple length mismatch', source: '(1, 2) + (1, 2, 3)' },
+  { name: 'compare non-numbers', source: 'true < false' },
+];
+
+export const evalLocationCases = [
+  { name: 'unknown name position', source: 'x = 1\nblurr 2', line: 2, col: 1 },
+];

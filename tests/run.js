@@ -2,12 +2,17 @@ import { LangError } from '../src/errors.js';
 import { lex } from '../src/lexer.js';
 import { parse } from '../src/parser.js';
 import { print } from '../src/ast.js';
+import { evaluate } from '../src/eval.js';
+import { formatValue } from '../src/values.js';
 import {
   lexerCases,
   positionCases,
   errorCases,
   parserCases,
   parserErrorCases,
+  evalCases,
+  evalErrorCases,
+  evalLocationCases,
 } from './cases.js';
 
 let passed = 0;
@@ -36,6 +41,15 @@ function checkThrows(label, fn) {
       failed++;
       console.log(`FAIL ${label}\n  expected a LangError, got ${err.toString()}`);
     }
+  }
+}
+
+function checkEval(label, source, expected) {
+  try {
+    check(label, formatValue(evaluate(source).value), expected);
+  } catch (err) {
+    failed++;
+    console.log(`FAIL ${label}\n  threw ${err.toString()}`);
   }
 }
 
@@ -80,6 +94,29 @@ for (const testCase of parserCases) {
 
 for (const testCase of parserErrorCases) {
   checkThrows(testCase.name, () => parse(testCase.source));
+}
+
+for (const testCase of evalCases) {
+  checkEval(testCase.name, testCase.source, testCase.expected);
+}
+
+for (const testCase of evalErrorCases) {
+  checkThrows(testCase.name, () => evaluate(testCase.source));
+}
+
+for (const testCase of evalLocationCases) {
+  try {
+    evaluate(testCase.source);
+    failed++;
+    console.log(`FAIL ${testCase.name}\n  expected a LangError, got none`);
+  } catch (err) {
+    if (err instanceof LangError && err.line === testCase.line && err.col === testCase.col) {
+      passed++;
+    } else {
+      failed++;
+      console.log(`FAIL ${testCase.name}\n  expected ${testCase.line}:${testCase.col}, got ${err.line}:${err.col}`);
+    }
+  }
 }
 
 console.log(`\n${passed} passed, ${failed} failed`);
