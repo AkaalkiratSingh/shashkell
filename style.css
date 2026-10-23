@@ -123,6 +123,24 @@ body {
 }
 
 .log.is-error {
+  color: var(--text);
+}
+
+.error-message {
+  color: var(--error);
+  font-weight: 600;
+}
+
+.error-where {
+  color: var(--muted);
+}
+
+.error-line {
+  background: rgba(255, 107, 107, 0.16);
+  border-radius: 2px;
+}
+
+.error-caret {
   color: var(--error);
 }
 

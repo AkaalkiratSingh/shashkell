@@ -234,7 +234,15 @@ export const evalErrorCases = [
 ];
 
 export const evalLocationCases = [
-  { name: 'unknown name position', source: 'x = 1\nblurr 2', line: 2, col: 1 },
+  { name: 'unknown name position', source: 'x = 1\nblurr 2', line: 2, col: 1, message: "unknown name 'blurr'" },
+  {
+    name: 'unknown stage in a pipe (done-check)',
+    source: 'input |> blurr 0.1',
+    line: 1,
+    col: 10,
+    message: "unknown name 'blurr'",
+    withInput: true,
+  },
 ];
 
 export const imageCases = [

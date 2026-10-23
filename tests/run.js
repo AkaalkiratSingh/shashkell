@@ -106,21 +106,6 @@ for (const testCase of evalErrorCases) {
   checkThrows(testCase.name, () => evaluate(testCase.source));
 }
 
-for (const testCase of evalLocationCases) {
-  try {
-    evaluate(testCase.source);
-    failed++;
-    console.log(`FAIL ${testCase.name}\n  expected a LangError, got none`);
-  } catch (err) {
-    if (err instanceof LangError && err.line === testCase.line && err.col === testCase.col) {
-      passed++;
-    } else {
-      failed++;
-      console.log(`FAIL ${testCase.name}\n  expected ${testCase.line}:${testCase.col}, got ${err.line}:${err.col}`);
-    }
-  }
-}
-
 const testInput = createImage(
   2,
   2,
@@ -131,6 +116,24 @@ const testInput = createImage(
     0.1, 0.2, 0.3, 1,
   ]),
 );
+
+for (const testCase of evalLocationCases) {
+  try {
+    evaluate(testCase.source, testCase.withInput ? { input: testInput } : {});
+    failed++;
+    console.log(`FAIL ${testCase.name}\n  expected a LangError, got none`);
+  } catch (err) {
+    const messageOk = testCase.message === undefined || err.message === testCase.message;
+    if (err instanceof LangError && err.line === testCase.line && err.col === testCase.col && messageOk) {
+      passed++;
+    } else {
+      failed++;
+      console.log(
+        `FAIL ${testCase.name}\n  expected ${testCase.line}:${testCase.col} ${testCase.message ?? ''}, got ${err.line}:${err.col} ${err.message}`,
+      );
+    }
+  }
+}
 
 const round4 = (v) => Math.round(v * 10000) / 10000;
 

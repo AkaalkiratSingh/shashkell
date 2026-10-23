@@ -1,3 +1,4 @@
+import { LangError } from './errors.js';
 import { createImage, drawImage } from './image.js';
 import { evaluate } from './eval.js';
 import { formatValue, isImage } from './values.js';
@@ -14,28 +15,55 @@ drawImage(canvas, input);
 const defaultSource = editor.value;
 
 runButton.addEventListener('click', () => {
+  const source = editor.value;
   try {
-    const { value } = evaluate(editor.value, { input });
+    const { value } = evaluate(source, { input });
     if (isImage(value)) {
       drawImage(canvas, value);
-      showLog(`rendered ${value.width}x${value.height} image`);
+      showText(`rendered ${value.width}x${value.height} image`);
     } else {
-      showLog(formatValue(value));
+      showText(formatValue(value));
     }
   } catch (err) {
-    showLog(err.toString(), true);
+    showError(err, source);
   }
 });
 
 resetButton.addEventListener('click', () => {
   editor.value = defaultSource;
-  showLog('');
+  showText('');
   drawImage(canvas, input);
 });
 
-function showLog(text, isError = false) {
+function showText(text) {
+  log.classList.remove('is-error');
   log.textContent = text;
-  log.classList.toggle('is-error', isError);
+}
+
+function showError(error, source) {
+  log.classList.add('is-error');
+
+  if (!(error instanceof LangError)) {
+    log.textContent = String(error);
+    return;
+  }
+
+  const lines = source.split('\n');
+  const index = Math.min(Math.max(error.line - 1, 0), lines.length - 1);
+  const text = lines[index] ?? '';
+  const gutter = String(error.line);
+  const pad = ' '.repeat(gutter.length);
+  const caret = ' '.repeat(Math.max(0, error.col - 1));
+
+  log.innerHTML =
+    `<span class="error-message">${escapeHtml(error.message)}</span>` +
+    `<span class="error-where"> line ${error.line}, column ${error.col}</span>\n` +
+    `${gutter} | <span class="error-line">${escapeHtml(text)}</span>\n` +
+    `${pad} | <span class="error-caret">${caret}^</span>`;
+}
+
+function escapeHtml(text) {
+  return text.replace(/[&<>]/g, (ch) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' })[ch]);
 }
 
 function makeDefaultImage(width, height) {
