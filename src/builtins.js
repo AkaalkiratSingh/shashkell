@@ -1,6 +1,6 @@
 import { LangError } from './errors.js';
 import { createImage } from './image.js';
-import { builtin, isNumber, isTuple, isImage, tuple, valueType } from './values.js';
+import { builtin, isNumber, isTuple, isImage, isWindow, tuple, valueType } from './values.js';
 
 function errAt(node, message) {
   throw new LangError(message, node?.line ?? 1, node?.col ?? 1);
@@ -16,25 +16,60 @@ function mapNumber(name, value, node, fn) {
   return fn(value);
 }
 
-function zipNumbers(name, a, b, node, fn) {
-  if (isTuple(a) && isTuple(b)) {
-    if (a.items.length !== b.items.length) {
-      errAt(node, `${name} cannot combine tuples of length ${a.items.length} and ${b.items.length}`);
-    }
-    return tuple(a.items.map((item, i) => zipNumbers(name, item, b.items[i], node, fn)));
-  }
-  if (isTuple(a)) return tuple(a.items.map((item) => zipNumbers(name, item, b, node, fn)));
-  if (isTuple(b)) return tuple(b.items.map((item) => zipNumbers(name, a, item, node, fn)));
-  requireNumber(a, name, node);
-  requireNumber(b, name, node);
-  return fn(a, b);
-}
-
 const numeric1 = (name, fn) =>
   builtin(name, 1, ([x], _ctx, node) => mapNumber(name, x, node, fn));
 
-const numeric2 = (name, fn) =>
-  builtin(name, 2, ([a, b], _ctx, node) => zipNumbers(name, a, b, node, fn));
+function combine(a, b, node, fn) {
+  if (isTuple(a) && isTuple(b)) {
+    if (a.items.length !== b.items.length) {
+      errAt(node, `cannot combine tuples of length ${a.items.length} and ${b.items.length}`);
+    }
+    return tuple(a.items.map((item, i) => fn(item, b.items[i])));
+  }
+  if (isTuple(a)) return tuple(a.items.map((item) => fn(item, b)));
+  if (isTuple(b)) return tuple(b.items.map((item) => fn(a, item)));
+  return fn(a, b);
+}
+
+function requireCollection(value, name, node) {
+  if (!isTuple(value) || value.items.length === 0) {
+    errAt(node, `${name} expects a non-empty collection, got a ${valueType(value)}`);
+  }
+}
+
+function foldCollection(value, name, node, init, fn) {
+  requireCollection(value, name, node);
+  const items = init === undefined ? value.items.slice(1) : value.items;
+  const start = init === undefined ? value.items[0] : init;
+  return items.reduce(
+    (acc, item) =>
+      combine(acc, item, node, (x, y) => {
+        requireNumber(x, name, node);
+        requireNumber(y, name, node);
+        return fn(x, y);
+      }),
+    start,
+  );
+}
+
+function medianCollection(value, node) {
+  requireCollection(value, 'median', node);
+  const items = value.items;
+  if (isNumber(items[0])) {
+    const sorted = [...items].sort((a, b) => a - b);
+    return sorted[Math.floor(sorted.length / 2)];
+  }
+  if (isTuple(items[0])) {
+    const size = items[0].items.length;
+    const channels = [];
+    for (let i = 0; i < size; i++) {
+      const column = items.map((item) => item.items[i]).sort((a, b) => a - b);
+      channels.push(column[Math.floor(column.length / 2)]);
+    }
+    return tuple(channels);
+  }
+  errAt(node, 'median expects numbers or colors');
+}
 
 const LUMA = [0.2126, 0.7152, 0.0722];
 
@@ -44,6 +79,10 @@ function lumaOf(color) {
 
 function requireImage(value, name, node) {
   if (!isImage(value)) errAt(node, `${name} expects an image, got a ${valueType(value)}`);
+}
+
+function requireWindow(value, name, node) {
+  if (!isWindow(value)) errAt(node, `${name} expects a window, got a ${valueType(value)}`);
 }
 
 function makeFrame() {
@@ -94,17 +133,54 @@ function writePixel(out, i, value, alpha) {
   errAt(null, `a pixel function must return a number or color, got a ${valueType(value)}`);
 }
 
-function combine(a, b, node, fn) {
-  if (isTuple(a) && isTuple(b)) {
-    if (a.items.length !== b.items.length) {
-      errAt(node, `cannot combine tuples of length ${a.items.length} and ${b.items.length}`);
-    }
-    return tuple(a.items.map((item, i) => fn(item, b.items[i])));
-  }
-  if (isTuple(a)) return tuple(a.items.map((item) => fn(item, b)));
-  if (isTuple(b)) return tuple(b.items.map((item) => fn(a, item)));
-  return fn(a, b);
+function mirrorIndex(v, n) {
+  if (n <= 1) return 0;
+  const m = 2 * (n - 1);
+  const p = ((v % m) + m) % m;
+  return p < n ? p : m - p;
 }
+
+function sampleColor(window, x, y) {
+  const { image, mode } = window;
+  const { width, height, data } = image;
+  let sx;
+  let sy;
+  if (mode === 'wrap') {
+    sx = ((x % width) + width) % width;
+    sy = ((y % height) + height) % height;
+  } else if (mode === 'mirror') {
+    sx = mirrorIndex(x, width);
+    sy = mirrorIndex(y, height);
+  } else {
+    sx = x < 0 ? 0 : x >= width ? width - 1 : x;
+    sy = y < 0 ? 0 : y >= height ? height - 1 : y;
+  }
+  const i = (sy * width + sx) * 4;
+  return tuple([data[i], data[i + 1], data[i + 2]]);
+}
+
+function applyStencil(image, radius, fn, mode, ctx, node) {
+  const { width, height, data } = image;
+  const pixels = Math.max(0, Math.round(radius * height));
+  const out = new Float32Array(width * height * 4);
+  const window = { type: 'window', image, x: 0, y: 0, radius: pixels, mode };
+  for (let y = 0; y < height; y++) {
+    for (let x = 0; x < width; x++) {
+      const i = (y * width + x) * 4;
+      window.x = x;
+      window.y = y;
+      writePixel(out, i, ctx.apply(fn, window, node, ctx), data[i + 3]);
+    }
+  }
+  return createImage(width, height, out);
+}
+
+const stencilBuiltin = (name, mode) =>
+  builtin(name, 3, ([radius, fn, image], ctx, node) => {
+    requireNumber(radius, name, node);
+    requireImage(image, name, node);
+    return applyStencil(image, radius, fn, mode, ctx, node);
+  });
 
 export const builtins = {
   sqrt: numeric1('sqrt', Math.sqrt),
@@ -112,8 +188,16 @@ export const builtins = {
   floor: numeric1('floor', Math.floor),
   ceil: numeric1('ceil', Math.ceil),
   round: numeric1('round', Math.round),
-  min: numeric2('min', Math.min),
-  max: numeric2('max', Math.max),
+
+  sum: builtin('sum', 1, ([value], _ctx, node) => foldCollection(value, 'sum', node, 0, (x, y) => x + y)),
+  mean: builtin('mean', 1, ([value], _ctx, node) => {
+    requireCollection(value, 'mean', node);
+    const total = foldCollection(value, 'mean', node, 0, (x, y) => x + y);
+    return combine(total, 1 / value.items.length, node, (x, scale) => x * scale);
+  }),
+  min: builtin('min', 1, ([value], _ctx, node) => foldCollection(value, 'min', node, undefined, Math.min)),
+  max: builtin('max', 1, ([value], _ctx, node) => foldCollection(value, 'max', node, undefined, Math.max)),
+  median: builtin('median', 1, ([value], _ctx, node) => medianCollection(value, node)),
 
   luma: builtin('luma', 1, ([color], _ctx, node) => {
     if (isNumber(color)) return color;
@@ -151,4 +235,35 @@ export const builtins = {
     const frame = makeFrame();
     return eachPixel(image, frame, (pixel) => ctx.apply(fn, pixel, node, ctx));
   }),
+
+  center: builtin('center', 1, ([window], _ctx, node) => {
+    requireWindow(window, 'center', node);
+    return sampleColor(window, window.x, window.y);
+  }),
+
+  at: builtin('at', 2, ([window, offset], _ctx, node) => {
+    requireWindow(window, 'at', node);
+    if (!isTuple(offset) || offset.items.length < 2) errAt(node, 'at expects an (dx, dy) offset');
+    requireNumber(offset.items[0], 'at', node);
+    requireNumber(offset.items[1], 'at', node);
+    const dx = Math.round(offset.items[0]);
+    const dy = Math.round(offset.items[1]);
+    return sampleColor(window, window.x + dx, window.y + dy);
+  }),
+
+  neighbors: builtin('neighbors', 1, ([window], _ctx, node) => {
+    requireWindow(window, 'neighbors', node);
+    const { radius } = window;
+    const items = [];
+    for (let dy = -radius; dy <= radius; dy++) {
+      for (let dx = -radius; dx <= radius; dx++) {
+        items.push(sampleColor(window, window.x + dx, window.y + dy));
+      }
+    }
+    return tuple(items);
+  }),
+
+  stencil: stencilBuiltin('stencil', 'clamp'),
+  stencilWrap: stencilBuiltin('stencilWrap', 'wrap'),
+  stencilMirror: stencilBuiltin('stencilMirror', 'mirror'),
 };

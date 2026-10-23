@@ -201,8 +201,8 @@ export const evalCases = [
   { name: 'short circuit or', source: 'true || missing', expected: 'true' },
   { name: 'recursion', source: 'fact n = if n == 0 then 1 else n * fact (n - 1)\nfact 5', expected: '120' },
   { name: 'partial application', source: 'add a b = a + b\nadd2 = add 2\nadd2 5', expected: '7' },
-  { name: 'curried builtin', source: 'min 3 5', expected: '3' },
-  { name: 'partially applied builtin', source: 'mx = max 3\nmx 5', expected: '5' },
+  { name: 'curried builtin', source: 'mix 0 1 0.25', expected: '0.25' },
+  { name: 'partially applied builtin', source: 'gray = mix (0, 0, 0) (1, 1, 1)\ngray 0.5', expected: '(0.5, 0.5, 0.5)' },
   { name: 'equality', source: '(1 + 1) == 2', expected: 'true' },
   { name: 'inequality', source: '3 /= 4', expected: 'true' },
   { name: 'pipe chain', source: 'inc x = x + 1\ndouble x = x * 2\n3 |> inc |> double', expected: '8' },
@@ -214,8 +214,13 @@ export const evalCases = [
   { name: 'mix numbers', source: 'mix 0 10 0.25', expected: '2.5' },
   { name: 'abs broadcasts over a tuple', source: 'abs (-1, 2, -3)', expected: '(1, 2, 3)' },
   { name: 'round broadcasts over a tuple', source: 'round (0.4, 1.6, 2.5)', expected: '(0, 2, 3)' },
-  { name: 'min broadcasts over tuples', source: 'min (1, 5) (3, 2)', expected: '(1, 2)' },
   { name: 'builtin broadcast with a scalar', source: 'sqrt (1, 4, 9)', expected: '(1, 2, 3)' },
+  { name: 'sum over a collection', source: 'sum (1, 2, 3)', expected: '6' },
+  { name: 'mean over a collection', source: 'mean (1, 2, 3, 4)', expected: '2.5' },
+  { name: 'min over a collection', source: 'min (3, 1, 2)', expected: '1' },
+  { name: 'max over a collection', source: 'max (3, 1, 2)', expected: '3' },
+  { name: 'median over a collection', source: 'median (5, 1, 3)', expected: '3' },
+  { name: 'mean over colors', source: 'mean ((1, 0, 0), (0, 1, 0))', expected: '(0.5, 0.5, 0)' },
 ];
 
 export const evalErrorCases = [
@@ -231,6 +236,10 @@ export const evalErrorCases = [
   { name: 'destructure a number', source: '(\\(a, b) -> a) 5' },
   { name: 'invert needs an image', source: 'invert 3' },
   { name: 'mapPx needs an image', source: 'mapPx (\\x -> x) 3' },
+  { name: 'stencil needs an image', source: 'stencil 0.1 (\\w -> center w) 3' },
+  { name: 'min needs a collection', source: 'min 3' },
+  { name: 'at needs a window', source: 'at 1 (0, 0)' },
+  { name: 'center needs a window', source: 'center 1' },
 ];
 
 export const evalLocationCases = [
@@ -258,5 +267,74 @@ export const imageCases = [
     source: 'levels = 3\nquantize = \\(uv, c) -> round (c * levels) / levels\ninput |> mapPx quantize',
     at: [0, 0],
     rgba: [0.3333, 0.6667, 0.6667, 1],
+  },
+];
+
+export const stencilCases = [
+  {
+    name: 'radius 0 is identity',
+    source: 'blur r = stencil r (\\w -> mean (neighbors w))\ninput |> blur 0',
+    at: [1, 1],
+    rgba: [0.5, 0.5, 0, 1],
+  },
+  {
+    name: 'blur center',
+    source: 'blur r = stencil r (\\w -> mean (neighbors w))\ninput |> blur 0.25',
+    at: [1, 1],
+    rgba: [0.5, 0.5, 0, 1],
+  },
+  {
+    name: 'blur clamps at the corner',
+    source: 'blur r = stencil r (\\w -> mean (neighbors w))\ninput |> blur 0.25',
+    at: [0, 0],
+    rgba: [0.1667, 0.1667, 0, 1],
+  },
+  {
+    name: 'dilate (max) clamps at the corner',
+    source: 'dilate r = stencil r (\\w -> max (neighbors w))\ninput |> dilate 0.25',
+    at: [0, 0],
+    rgba: [0.5, 0.5, 0, 1],
+  },
+  {
+    name: 'median center',
+    source: 'med r = stencil r (\\w -> median (neighbors w))\ninput |> med 0.25',
+    at: [1, 1],
+    rgba: [0.5, 0.5, 0, 1],
+  },
+  {
+    name: 'median corner',
+    source: 'med r = stencil r (\\w -> median (neighbors w))\ninput |> med 0.25',
+    at: [0, 0],
+    rgba: [0, 0, 0, 1],
+  },
+  {
+    name: 'edges via max - min',
+    source: 'edges r = stencil r (\\w -> max (neighbors w) - min (neighbors w))\ninput |> edges 0.25',
+    at: [1, 1],
+    rgba: [1, 1, 0, 1],
+  },
+  {
+    name: 'center',
+    source: 'input |> stencil 0.25 (\\w -> center w)',
+    at: [1, 1],
+    rgba: [0.5, 0.5, 0, 1],
+  },
+  {
+    name: 'at offsets',
+    source: 'input |> stencil 0.25 (\\w -> at w (1, 0))',
+    at: [1, 1],
+    rgba: [1, 0.5, 0, 1],
+  },
+  {
+    name: 'wrap edge mode',
+    source: 'input |> stencilWrap 0.25 (\\w -> at w (-1, 0))',
+    at: [0, 1],
+    rgba: [1, 0.5, 0, 1],
+  },
+  {
+    name: 'mirror edge mode',
+    source: 'input |> stencilMirror 0.25 (\\w -> at w (-1, 0))',
+    at: [0, 1],
+    rgba: [0.5, 0.5, 0, 1],
   },
 ];

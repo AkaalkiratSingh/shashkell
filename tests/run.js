@@ -15,6 +15,7 @@ import {
   evalErrorCases,
   evalLocationCases,
   imageCases,
+  stencilCases,
 } from './cases.js';
 
 let passed = 0;
@@ -117,6 +118,16 @@ const testInput = createImage(
   ]),
 );
 
+const stencilInput = createImage(
+  3,
+  3,
+  new Float32Array([
+    0, 0, 0, 1, 0.5, 0, 0, 1, 1, 0, 0, 1,
+    0, 0.5, 0, 1, 0.5, 0.5, 0, 1, 1, 0.5, 0, 1,
+    0, 1, 0, 1, 0.5, 1, 0, 1, 1, 1, 0, 1,
+  ]),
+);
+
 for (const testCase of evalLocationCases) {
   try {
     evaluate(testCase.source, testCase.withInput ? { input: testInput } : {});
@@ -137,23 +148,32 @@ for (const testCase of evalLocationCases) {
 
 const round4 = (v) => Math.round(v * 10000) / 10000;
 
-for (const testCase of imageCases) {
-  try {
-    const image = evaluate(testCase.source, { input: testInput }).value;
-    if (testCase.size) {
-      check(`${testCase.name} (size)`, `${image.width}x${image.height}`, `${testCase.size[0]}x${testCase.size[1]}`);
+function runPixelCases(cases, inputImage) {
+  for (const testCase of cases) {
+    try {
+      const image = evaluate(testCase.source, { input: inputImage }).value;
+      if (testCase.size) {
+        check(
+          `${testCase.name} (size)`,
+          `${image.width}x${image.height}`,
+          `${testCase.size[0]}x${testCase.size[1]}`,
+        );
+      }
+      if (testCase.at) {
+        const [x, y] = testCase.at;
+        const i = (y * image.width + x) * 4;
+        const actual = [image.data[i], image.data[i + 1], image.data[i + 2], image.data[i + 3]].map(round4);
+        check(testCase.name, JSON.stringify(actual), JSON.stringify(testCase.rgba));
+      }
+    } catch (err) {
+      failed++;
+      console.log(`FAIL ${testCase.name}\n  threw ${err.toString()}`);
     }
-    if (testCase.at) {
-      const [x, y] = testCase.at;
-      const i = (y * image.width + x) * 4;
-      const actual = [image.data[i], image.data[i + 1], image.data[i + 2], image.data[i + 3]].map(round4);
-      check(testCase.name, JSON.stringify(actual), JSON.stringify(testCase.rgba));
-    }
-  } catch (err) {
-    failed++;
-    console.log(`FAIL ${testCase.name}\n  threw ${err.toString()}`);
   }
 }
+
+runPixelCases(imageCases, testInput);
+runPixelCases(stencilCases, stencilInput);
 
 console.log(`\n${passed} passed, ${failed} failed`);
 process.exit(failed === 0 ? 0 : 1);

@@ -23,6 +23,7 @@ export const isNumber = (v) => typeof v === 'number';
 export const isBoolean = (v) => typeof v === 'boolean';
 export const isTuple = (v) => typeof v === 'object' && v !== null && v.type === 'tuple';
 export const isImage = (v) => typeof v === 'object' && v !== null && v.type === 'image';
+export const isWindow = (v) => typeof v === 'object' && v !== null && v.type === 'window';
 export const isCallable = (v) =>
   typeof v === 'object' && v !== null && (v.type === 'closure' || v.type === 'builtin');
 
@@ -45,6 +46,7 @@ export function valueType(v) {
   if (v.type === 'closure') return 'function';
   if (v.type === 'builtin') return 'builtin';
   if (v.type === 'image') return 'image';
+  if (v.type === 'window') return 'window';
   return 'value';
 }
 
@@ -55,5 +57,6 @@ export function formatValue(v) {
   if (v && v.type === 'closure') return '<function>';
   if (v && v.type === 'builtin') return `<builtin ${v.name}>`;
   if (v && v.type === 'image') return `<image ${v.width}x${v.height}>`;
+  if (v && v.type === 'window') return '<window>';
   return String(v);
 }
