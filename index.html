@@ -16,14 +16,20 @@
             <button id="run" type="button" class="btn">Run</button>
           </div>
         </header>
-        <textarea id="editor" spellcheck="false" autocomplete="off">-- shaskell: a functional shader language for images
+        <textarea id="editor" spellcheck="false" autocomplete="off">
+-- shaskell: a functional shader language for images
 --   input ramps red left->right and green top->bottom
---   uv is the normalized pixel coordinate, c is its color
---   this posterizes each color channel into a few flat levels
-levels = 3
-quantize = \(uv, c) -> round (c * levels) / levels
-input |> mapPx quantize
-</textarea>
+--   stencil r f  runs f over a window of neighbours around each pixel
+--     r is a radius as a fraction of image height, so effects look
+--     the same at any resolution
+--   window helpers: center w, at w (dx, dy), neighbors w
+--   reducers over neighbours: mean, sum, min, max, median
+-- this samples each colour channel from a different offset (a channel split)
+
+split = stencil 20 (\w -> ((at w (64, 0)).g, (at w (0, -64)).r, (center w).r))
+soften r = stencil r (\w -> mean (neighbors w))
+input |> split |> soften 0.004
+        </textarea>
         <pre id="log" class="log" aria-live="polite"></pre>
       </section>
       <section class="pane preview-pane">
