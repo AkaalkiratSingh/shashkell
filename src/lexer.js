@@ -131,6 +131,24 @@ export function lex(source) {
       continue;
     }
 
+    if (ch === '"') {
+      step();
+      let text = '';
+      while (!done() && at() !== '"') {
+        if (at() === '\\') {
+          step();
+          const escaped = step();
+          text += escaped === 'n' ? '\n' : escaped === 't' ? '\t' : escaped;
+        } else {
+          text += step();
+        }
+      }
+      if (done()) fail('unterminated string', startLine, startCol);
+      step();
+      push('string', text, startLine, startCol);
+      continue;
+    }
+
     if (isIdentStart(ch)) {
       let name = '';
       while (!done() && isIdentPart(at())) name += step();

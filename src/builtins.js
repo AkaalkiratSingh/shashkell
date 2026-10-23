@@ -86,7 +86,7 @@ function requireWindow(value, name, node) {
 }
 
 function makeFrame() {
-  return tuple([tuple([0, 0]), tuple([0, 0, 0])]);
+  return tuple([tuple([0, 0, 0]), tuple([0, 0, 0])]);
 }
 
 function eachPixel(image, frame, fn) {
@@ -99,6 +99,7 @@ function eachPixel(image, frame, fn) {
       const i = (y * width + x) * 4;
       uv.items[0] = (x + 0.5) / width;
       uv.items[1] = (y + 0.5) / height;
+      uv.items[2] = width / height;
       color.items[0] = data[i];
       color.items[1] = data[i + 1];
       color.items[2] = data[i + 2];
@@ -261,6 +262,55 @@ export const builtins = {
       }
     }
     return tuple(items);
+  }),
+
+  pos: builtin('pos', 1, ([window], _ctx, node) => {
+    requireWindow(window, 'pos', node);
+    return tuple([window.x, window.y]);
+  }),
+
+  sample: builtin('sample', 2, ([image, uv], _ctx, node) => {
+    requireImage(image, 'sample', node);
+    if (!isTuple(uv) || uv.items.length < 2) errAt(node, 'sample expects a (u, v) coordinate');
+    requireNumber(uv.items[0], 'sample', node);
+    requireNumber(uv.items[1], 'sample', node);
+    const { width, height, data } = image;
+    const x = Math.min(width - 1, Math.max(0, Math.floor(uv.items[0] * width)));
+    const y = Math.min(height - 1, Math.max(0, Math.floor(uv.items[1] * height)));
+    const i = (y * width + x) * 4;
+    return tuple([data[i], data[i + 1], data[i + 2]]);
+  }),
+
+  size: builtin('size', 1, ([image], _ctx, node) => {
+    requireImage(image, 'size', node);
+    return tuple([image.width, image.height]);
+  }),
+
+  debug: builtin('debug', 2, ([label, image], _ctx, node) => {
+    if (typeof label !== 'string') {
+      errAt(node, `debug expects a string label, got a ${valueType(label)}`);
+    }
+    requireImage(image, 'debug', node);
+    return { ...image, label };
+  }),
+
+  len: builtin('len', 1, ([value], _ctx, node) => {
+    if (isNumber(value)) return Math.abs(value);
+    if (isTuple(value)) return Math.sqrt(value.items.reduce((sum, item) => sum + item * item, 0));
+    errAt(node, `len expects a number or tuple, got a ${valueType(value)}`);
+  }),
+
+  dot: builtin('dot', 2, ([a, b], _ctx, node) => {
+    if (!isTuple(a) || !isTuple(b) || a.items.length !== b.items.length) {
+      errAt(node, 'dot expects two tuples of the same length');
+    }
+    return a.items.reduce((sum, item, i) => sum + item * b.items[i], 0);
+  }),
+
+  clamp: builtin('clamp', 3, ([value, low, high], _ctx, node) => {
+    requireNumber(low, 'clamp', node);
+    requireNumber(high, 'clamp', node);
+    return mapNumber('clamp', value, node, (v) => (v < low ? low : v > high ? high : v));
   }),
 
   stencil: stencilBuiltin('stencil', 'clamp'),

@@ -18,13 +18,24 @@ export function createGlobalEnv(ctx = {}) {
   const env = createEnv();
   for (const [name, value] of Object.entries(builtins)) envDefine(env, name, value);
   if (ctx.input) envDefine(env, 'input', ctx.input);
+  env.preludeErrors = [];
+  for (const source of ctx.prelude ?? []) {
+    try {
+      evalProgram(parse(source), env, makeRuntime(ctx));
+    } catch (error) {
+      env.preludeErrors.push(error);
+    }
+  }
   return env;
+}
+
+export function makeRuntime(ctx = {}) {
+  return { ...ctx, apply: applyFn };
 }
 
 export function evaluate(source, ctx = {}) {
   const env = createGlobalEnv(ctx);
-  const runtime = { ...ctx, apply: applyFn };
-  const value = evalProgram(parse(source), env, runtime);
+  const value = evalProgram(parse(source), env, makeRuntime(ctx));
   return { value, env };
 }
 
@@ -56,6 +67,8 @@ export function evalExpr(node, env, ctx = {}) {
     case 'Num':
       return node.value;
     case 'Bool':
+      return node.value;
+    case 'Str':
       return node.value;
     case 'Color':
       return colorValue(node.value);

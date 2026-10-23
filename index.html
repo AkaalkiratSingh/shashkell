@@ -12,25 +12,14 @@
         <header class="pane-header">
           <h1>shaskell</h1>
           <div class="controls">
+            <button id="add" type="button" class="btn">Add cell</button>
+            <button id="export" type="button" class="btn">Export</button>
+            <button id="import" type="button" class="btn">Import</button>
             <button id="reset" type="button" class="btn">Reset</button>
-            <button id="run" type="button" class="btn">Run</button>
           </div>
         </header>
-        <textarea id="editor" spellcheck="false" autocomplete="off">
--- shaskell: a functional shader language for images
---   input ramps red left->right and green top->bottom
---   stencil r f  runs f over a window of neighbours around each pixel
---     r is a radius as a fraction of image height, so effects look
---     the same at any resolution
---   window helpers: center w, at w (dx, dy), neighbors w
---   reducers over neighbours: mean, sum, min, max, median
--- this samples each colour channel from a different offset (a channel split)
-
-split = stencil 20 (\w -> ((at w (64, 0)).g, (at w (0, -64)).r, (center w).r))
-soften r = stencil r (\w -> mean (neighbors w))
-input |> split |> soften 0.004
-        </textarea>
-        <pre id="log" class="log" aria-live="polite"></pre>
+        <div id="cells" class="cells"></div>
+        <input id="import-file" type="file" accept="application/json,.json" hidden />
       </section>
       <section class="pane preview-pane">
         <header class="pane-header">
@@ -39,6 +28,7 @@ input |> split |> soften 0.004
         <div class="canvas-wrap">
           <canvas id="output"></canvas>
         </div>
+        <pre id="log" class="log" aria-live="polite"></pre>
       </section>
     </main>
     <script type="module" src="src/main.js"></script>

@@ -65,7 +65,9 @@ class Parser {
   }
 
   startsAtom(token) {
-    if (token.type === 'number' || token.type === 'color' || token.type === 'ident') return true;
+    if (token.type === 'number' || token.type === 'color' || token.type === 'string' || token.type === 'ident') {
+      return true;
+    }
     if (token.type === 'keyword') return token.value === 'true' || token.value === 'false';
     return token.type === 'punct' && token.value === '(';
   }
@@ -105,6 +107,10 @@ class Parser {
     if (token.type === 'color') {
       this.next();
       return ast.Color(token.value);
+    }
+    if (token.type === 'string') {
+      this.next();
+      return ast.Str(token.value);
     }
     if (token.type === 'ident') {
       this.next();

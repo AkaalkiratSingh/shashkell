@@ -6,6 +6,10 @@ export function envDefine(env, name, value) {
   env.vars.set(name, value);
 }
 
+export function envDelete(env, name) {
+  env.vars.delete(name);
+}
+
 export function envLookup(env, name) {
   let scope = env;
   while (scope) {
@@ -41,6 +45,7 @@ export const SWIZZLE_COMPONENTS = {
 export function valueType(v) {
   if (typeof v === 'number') return 'number';
   if (typeof v === 'boolean') return 'boolean';
+  if (typeof v === 'string') return 'string';
   if (v === null || v === undefined) return 'nothing';
   if (v.type === 'tuple') return 'tuple';
   if (v.type === 'closure') return 'function';
@@ -53,6 +58,7 @@ export function valueType(v) {
 export function formatValue(v) {
   if (typeof v === 'number') return String(v);
   if (typeof v === 'boolean') return String(v);
+  if (typeof v === 'string') return JSON.stringify(v);
   if (v && v.type === 'tuple') return `(${v.items.map(formatValue).join(', ')})`;
   if (v && v.type === 'closure') return '<function>';
   if (v && v.type === 'builtin') return `<builtin ${v.name}>`;

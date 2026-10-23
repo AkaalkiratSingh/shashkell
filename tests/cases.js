@@ -109,6 +109,16 @@ export const lexerCases = [
       ['eof', null],
     ],
   },
+  {
+    name: 'string literal',
+    source: 'debug "hi\\nthere" x',
+    tokens: [
+      ['ident', 'debug'],
+      ['string', 'hi\nthere'],
+      ['ident', 'x'],
+      ['eof', null],
+    ],
+  },
 ];
 
 export const positionCases = [
@@ -166,6 +176,7 @@ export const parserCases = [
     printed: 'blur r = stencil r\ninput |> blur 0.004',
   },
   { name: 'semicolon separator', source: 'a = 1; b = 2; a + b', printed: 'a = 1\nb = 2\na + b' },
+  { name: 'string argument', source: 'debug "hi" input', printed: 'debug "hi" input' },
 ];
 
 export const parserErrorCases = [
@@ -221,6 +232,12 @@ export const evalCases = [
   { name: 'max over a collection', source: 'max (3, 1, 2)', expected: '3' },
   { name: 'median over a collection', source: 'median (5, 1, 3)', expected: '3' },
   { name: 'mean over colors', source: 'mean ((1, 0, 0), (0, 1, 0))', expected: '(0.5, 0.5, 0)' },
+  { name: 'string literal value', source: '"hi"', expected: '"hi"' },
+  { name: 'len of a vector', source: 'len (3, 4)', expected: '5' },
+  { name: 'len of a number', source: 'len (-3)', expected: '3' },
+  { name: 'dot product', source: 'dot (1, 2) (3, 4)', expected: '11' },
+  { name: 'clamp a number', source: 'clamp 5 0 1', expected: '1' },
+  { name: 'clamp a tuple', source: 'clamp (0.5, 2, -1) 0 1', expected: '(0.5, 1, 0)' },
 ];
 
 export const evalErrorCases = [
@@ -240,6 +257,9 @@ export const evalErrorCases = [
   { name: 'min needs a collection', source: 'min 3' },
   { name: 'at needs a window', source: 'at 1 (0, 0)' },
   { name: 'center needs a window', source: 'center 1' },
+  { name: 'debug needs a string label', source: 'debug 1 2' },
+  { name: 'sample needs an image', source: 'sample 3 (0, 0)' },
+  { name: 'pos needs a window', source: 'pos 1' },
 ];
 
 export const evalLocationCases = [
@@ -335,6 +355,35 @@ export const stencilCases = [
     name: 'mirror edge mode',
     source: 'input |> stencilMirror 0.25 (\\w -> at w (-1, 0))',
     at: [0, 1],
+    rgba: [0.5, 0.5, 0, 1],
+  },
+];
+
+export const preludeCases = [
+  { name: 'library blur', source: 'input |> blur 0.25', at: [1, 1], rgba: [0.5, 0.5, 0, 1] },
+  { name: 'library medianFilter', source: 'input |> medianFilter 0.25', at: [1, 1], rgba: [0.5, 0.5, 0, 1] },
+  { name: 'library edges', source: 'input |> edges 0.25', at: [1, 1], rgba: [1, 1, 0, 1] },
+  { name: 'library dilate', source: 'input |> dilate 0.25', at: [0, 0], rgba: [0.5, 0.5, 0, 1] },
+  { name: 'library erode', source: 'input |> erode 0.25', at: [1, 1], rgba: [0, 0, 0, 1] },
+  { name: 'library threshold dark', source: 'input |> threshold 0.5', at: [1, 1], rgba: [0, 0, 0, 1] },
+  { name: 'library threshold bright', source: 'input |> threshold 0.5', at: [0, 2], rgba: [1, 1, 1, 1] },
+  { name: 'library vignette leaves the centre', source: 'input |> vignette 1', at: [1, 1], rgba: [0.5, 0.5, 0, 1] },
+  { name: 'library vignette darkens a corner', source: 'input |> vignette 1', at: [2, 2], rgba: [0.5286, 0.5286, 0, 1] },
+  {
+    name: 'library duotone',
+    source: 'input |> duotone (0, 0, 1) (1, 1, 0)',
+    at: [1, 1],
+    rgba: [0.4639, 0.4639, 0.5361, 1],
+  },
+  { name: 'library stages compose', source: 'input |> erode 0.25 |> blur 0.25', at: [1, 1], rgba: [0.1667, 0.1667, 0, 1] },
+  { name: 'library used inside a function', source: 'soft r = input |> blur r\nsoft 0.25', at: [1, 1], rgba: [0.5, 0.5, 0, 1] },
+  { name: 'library pixelate', source: 'input |> pixelate 2', at: [1, 1], rgba: [0, 0, 0, 1] },
+  { name: 'library glitch', source: 'input |> glitch 1', at: [1, 1], rgba: [0, 0.5, 0, 1] },
+  { name: 'library zoom identity', source: 'input |> zoom 1', at: [1, 1], rgba: [0.5, 0.5, 0, 1] },
+  {
+    name: 'pipeline passed as an argument',
+    source: 'twice f img = img |> f |> f\ntwice (blur 0.25) input',
+    at: [1, 1],
     rgba: [0.5, 0.5, 0, 1],
   },
 ];

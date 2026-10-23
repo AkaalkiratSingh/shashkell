@@ -1,6 +1,7 @@
 export const Num = (value) => ({ type: 'Num', value });
 export const Color = (value) => ({ type: 'Color', value });
 export const Bool = (value) => ({ type: 'Bool', value });
+export const Str = (value) => ({ type: 'Str', value });
 export const Var = (name) => ({ type: 'Var', name });
 export const Lambda = (params, body) => ({ type: 'Lambda', params, body });
 export const App = (fn, arg) => ({ type: 'App', fn, arg });
@@ -47,6 +48,7 @@ function precOf(node) {
     case 'Num':
     case 'Color':
     case 'Bool':
+    case 'Str':
     case 'Var':
     case 'Tuple':
     case 'Swizzle':
@@ -79,6 +81,8 @@ function render(node) {
       return node.value;
     case 'Bool':
       return String(node.value);
+    case 'Str':
+      return JSON.stringify(node.value);
     case 'Var':
       return node.name;
     case 'App':
