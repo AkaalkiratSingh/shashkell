@@ -156,10 +156,28 @@ class Parser {
   parseLambda() {
     this.next();
     const params = [];
-    while (this.at('ident')) params.push(this.next().value);
+    while (this.at('ident') || this.at('punct', '(')) params.push(this.parsePattern());
     if (params.length === 0) this.fail('expected a parameter after \\');
     this.eat('op', '->', "'->'");
     return ast.Lambda(params, this.parseExpression(0));
+  }
+
+  parsePattern() {
+    if (this.at('ident')) return this.next().value;
+    this.eat('punct', '(');
+    const first = this.parsePattern();
+    if (!this.at('punct', ',')) {
+      this.eat('punct', ')', "')'");
+      return first;
+    }
+    const items = [first];
+    while (this.at('punct', ',')) {
+      this.next();
+      if (this.at('punct', ')')) break;
+      items.push(this.parsePattern());
+    }
+    this.eat('punct', ')', "')'");
+    return items;
   }
 
   parseIf() {

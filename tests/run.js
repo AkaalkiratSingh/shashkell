@@ -4,6 +4,7 @@ import { parse } from '../src/parser.js';
 import { print } from '../src/ast.js';
 import { evaluate } from '../src/eval.js';
 import { formatValue } from '../src/values.js';
+import { createImage } from '../src/image.js';
 import {
   lexerCases,
   positionCases,
@@ -13,6 +14,7 @@ import {
   evalCases,
   evalErrorCases,
   evalLocationCases,
+  imageCases,
 } from './cases.js';
 
 let passed = 0;
@@ -116,6 +118,37 @@ for (const testCase of evalLocationCases) {
       failed++;
       console.log(`FAIL ${testCase.name}\n  expected ${testCase.line}:${testCase.col}, got ${err.line}:${err.col}`);
     }
+  }
+}
+
+const testInput = createImage(
+  2,
+  2,
+  new Float32Array([
+    0.25, 0.5, 0.75, 1,
+    1, 0, 0, 1,
+    0, 1, 0.5, 0.5,
+    0.1, 0.2, 0.3, 1,
+  ]),
+);
+
+const round4 = (v) => Math.round(v * 10000) / 10000;
+
+for (const testCase of imageCases) {
+  try {
+    const image = evaluate(testCase.source, { input: testInput }).value;
+    if (testCase.size) {
+      check(`${testCase.name} (size)`, `${image.width}x${image.height}`, `${testCase.size[0]}x${testCase.size[1]}`);
+    }
+    if (testCase.at) {
+      const [x, y] = testCase.at;
+      const i = (y * image.width + x) * 4;
+      const actual = [image.data[i], image.data[i + 1], image.data[i + 2], image.data[i + 3]].map(round4);
+      check(testCase.name, JSON.stringify(actual), JSON.stringify(testCase.rgba));
+    }
+  } catch (err) {
+    failed++;
+    console.log(`FAIL ${testCase.name}\n  threw ${err.toString()}`);
   }
 }
 

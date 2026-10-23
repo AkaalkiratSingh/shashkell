@@ -11,11 +11,18 @@
       <section class="pane editor-pane">
         <header class="pane-header">
           <h1>shaskell</h1>
-          <button id="run" type="button">Run</button>
+          <div class="controls">
+            <button id="reset" type="button" class="btn">Reset</button>
+            <button id="run" type="button" class="btn">Run</button>
+          </div>
         </header>
         <textarea id="editor" spellcheck="false" autocomplete="off">-- shaskell: a functional shader language for images
-twice f = \x -> f (f x)
-twice (\x -> x * 2) 3
+--   input ramps red left->right and green top->bottom
+--   uv is the normalized pixel coordinate, c is its color
+--   this posterizes each color channel into a few flat levels
+levels = 3
+quantize = \(uv, c) -> round (c * levels) / levels
+input |> mapPx quantize
 </textarea>
         <pre id="log" class="log" aria-live="polite"></pre>
       </section>

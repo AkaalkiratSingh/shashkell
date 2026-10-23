@@ -1,23 +1,36 @@
 import { createImage, drawImage } from './image.js';
 import { evaluate } from './eval.js';
-import { formatValue } from './values.js';
+import { formatValue, isImage } from './values.js';
 
 const canvas = document.getElementById('output');
 const editor = document.getElementById('editor');
 const runButton = document.getElementById('run');
+const resetButton = document.getElementById('reset');
 const log = document.getElementById('log');
 
 const input = makeDefaultImage(256, 256);
 drawImage(canvas, input);
 
+const defaultSource = editor.value;
+
 runButton.addEventListener('click', () => {
   try {
-    const { value } = evaluate(editor.value);
-    console.log(value);
-    showLog(formatValue(value));
+    const { value } = evaluate(editor.value, { input });
+    if (isImage(value)) {
+      drawImage(canvas, value);
+      showLog(`rendered ${value.width}x${value.height} image`);
+    } else {
+      showLog(formatValue(value));
+    }
   } catch (err) {
     showLog(err.toString(), true);
   }
+});
+
+resetButton.addEventListener('click', () => {
+  editor.value = defaultSource;
+  showLog('');
+  drawImage(canvas, input);
 });
 
 function showLog(text, isError = false) {

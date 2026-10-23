@@ -85,20 +85,26 @@ body {
   outline: none;
 }
 
-#run {
+.controls {
+  display: flex;
+  gap: 8px;
+}
+
+.btn {
   padding: 6px 14px;
-  border: 1px solid var(--accent);
+  border: 1px solid var(--border);
   border-radius: 6px;
   background: transparent;
-  color: var(--accent);
+  color: var(--text);
   font: inherit;
   font-size: 13px;
   cursor: pointer;
 }
 
-#run:hover {
-  background: var(--accent);
-  color: var(--bg);
+.btn:hover {
+  background: var(--panel);
+  border-color: var(--accent);
+  color: var(--accent);
 }
 
 .log {

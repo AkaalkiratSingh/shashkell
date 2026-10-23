@@ -1,6 +1,6 @@
 export function createImage(width, height, data) {
   return {
-    kind: 'image',
+    type: 'image',
     width,
     height,
     data: data ?? new Float32Array(width * height * 4),

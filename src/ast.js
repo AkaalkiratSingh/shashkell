@@ -67,6 +67,10 @@ function show(node, ctx = 0) {
   return precOf(node) < ctx ? `(${text})` : text;
 }
 
+function printPattern(pattern) {
+  return Array.isArray(pattern) ? `(${pattern.map(printPattern).join(', ')})` : pattern;
+}
+
 function render(node) {
   switch (node.type) {
     case 'Num':
@@ -84,7 +88,7 @@ function render(node) {
     case 'BinOp':
       return `${show(node.left, OP_PREC[node.op])} ${node.op} ${show(node.right, OP_PREC[node.op] + 1)}`;
     case 'Lambda':
-      return `\\${node.params.join(' ')} -> ${render(node.body)}`;
+      return `\\${node.params.map(printPattern).join(' ')} -> ${render(node.body)}`;
     case 'If':
       return `if ${render(node.cond)} then ${render(node.then)} else ${render(node.alt)}`;
     case 'Let':

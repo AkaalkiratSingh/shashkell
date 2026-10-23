@@ -14,15 +14,17 @@ import {
   valueType,
 } from './values.js';
 
-export function createGlobalEnv() {
+export function createGlobalEnv(ctx = {}) {
   const env = createEnv();
   for (const [name, value] of Object.entries(builtins)) envDefine(env, name, value);
+  if (ctx.input) envDefine(env, 'input', ctx.input);
   return env;
 }
 
 export function evaluate(source, ctx = {}) {
-  const env = createGlobalEnv();
-  const value = evalProgram(parse(source), env, ctx);
+  const env = createGlobalEnv(ctx);
+  const runtime = { ...ctx, apply: applyFn };
+  const value = evalProgram(parse(source), env, runtime);
   return { value, env };
 }
 
@@ -95,7 +97,7 @@ function lookupVar(node, env) {
 export function applyFn(fn, arg, node, ctx = {}) {
   if (fn && fn.type === 'closure') {
     const child = createEnv(fn.env);
-    envDefine(child, fn.params[0], arg);
+    bindPattern(child, fn.params[0], arg, node);
     if (fn.params.length === 1) return evalExpr(fn.body, child, ctx);
     return closure(fn.params.slice(1), fn.body, child);
   }
@@ -105,6 +107,20 @@ export function applyFn(fn, arg, node, ctx = {}) {
     return fn.fn(args, ctx, node);
   }
   errAt(node, `cannot apply a ${valueType(fn)} as a function`);
+}
+
+function bindPattern(env, pattern, value, node) {
+  if (typeof pattern === 'string') {
+    envDefine(env, pattern, value);
+    return;
+  }
+  if (!isTuple(value)) {
+    errAt(node, `cannot destructure a ${valueType(value)} with a ${pattern.length}-tuple pattern`);
+  }
+  if (value.items.length !== pattern.length) {
+    errAt(node, `pattern expects ${pattern.length} values, got ${value.items.length}`);
+  }
+  pattern.forEach((part, i) => bindPattern(env, part, value.items[i], node));
 }
 
 function evalBinOp(node, env, ctx) {

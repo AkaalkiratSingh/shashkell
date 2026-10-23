@@ -18,7 +18,6 @@ export function envLookup(env, name) {
 export const tuple = (items) => ({ type: 'tuple', items });
 export const closure = (params, body, env) => ({ type: 'closure', params, body, env });
 export const builtin = (name, arity, fn, args = []) => ({ type: 'builtin', name, arity, fn, args });
-export const imageValue = (width, height, data) => ({ type: 'image', width, height, data });
 
 export const isNumber = (v) => typeof v === 'number';
 export const isBoolean = (v) => typeof v === 'boolean';

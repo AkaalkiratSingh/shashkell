@@ -145,6 +145,8 @@ export const parserCases = [
   { name: 'pipe chain', source: 'a |> f 1 |> g', printed: 'a |> f 1 |> g' },
   { name: 'lambda', source: '\\x -> x + 1', printed: '\\x -> x + 1' },
   { name: 'multi-arg lambda', source: '\\a b -> a', printed: '\\a b -> a' },
+  { name: 'tuple-pattern lambda', source: '\\(uv, c) -> c * uv.x', printed: '\\(uv, c) -> c * uv.x' },
+  { name: 'mixed patterns', source: '\\a (b, c) -> a', printed: '\\a (b, c) -> a' },
   { name: 'let in', source: 'let y = 2 in y * y', printed: 'let y = 2 in y * y' },
   { name: 'arithmetic precedence', source: 'a + b * c', printed: 'a + b * c' },
   { name: 'explicit parens kept', source: '(a + b) * c', printed: '(a + b) * c' },
@@ -191,6 +193,7 @@ export const evalCases = [
   { name: 'negate a tuple', source: '-(1, 2)', expected: '(-1, -2)' },
   { name: 'swizzle one component', source: '(1, 2, 3).y', expected: '2' },
   { name: 'swizzle reorder', source: '(10, 20, 30, 40).wz', expected: '(40, 30)' },
+  { name: 'tuple pattern', source: '(\\(a, b) -> a + b) (1, 2)', expected: '3' },
   { name: 'let in', source: 'let y = 2 in y * y', expected: '4' },
   { name: 'if taken', source: 'if 2 > 1 then 10 else 20', expected: '10' },
   { name: 'if not taken', source: 'if 1 > 2 then 10 else 20', expected: '20' },
@@ -205,6 +208,14 @@ export const evalCases = [
   { name: 'pipe chain', source: 'inc x = x + 1\ndouble x = x * 2\n3 |> inc |> double', expected: '8' },
   { name: 'color component', source: '(#00ff00).g', expected: '1' },
   { name: 'color expands to a tuple', source: '#ff8000', expected: '(1, 0.5019607843137255, 0)' },
+  { name: 'luma of red', source: 'luma (1, 0, 0)', expected: '0.2126' },
+  { name: 'luma of a gray number', source: 'luma 0.5', expected: '0.5' },
+  { name: 'mix colors', source: 'mix (0, 0, 0) (2, 4, 6) 0.5', expected: '(1, 2, 3)' },
+  { name: 'mix numbers', source: 'mix 0 10 0.25', expected: '2.5' },
+  { name: 'abs broadcasts over a tuple', source: 'abs (-1, 2, -3)', expected: '(1, 2, 3)' },
+  { name: 'round broadcasts over a tuple', source: 'round (0.4, 1.6, 2.5)', expected: '(0, 2, 3)' },
+  { name: 'min broadcasts over tuples', source: 'min (1, 5) (3, 2)', expected: '(1, 2)' },
+  { name: 'builtin broadcast with a scalar', source: 'sqrt (1, 4, 9)', expected: '(1, 2, 3)' },
 ];
 
 export const evalErrorCases = [
@@ -216,8 +227,28 @@ export const evalErrorCases = [
   { name: 'non-boolean condition', source: 'if 1 then 2 else 3' },
   { name: 'tuple length mismatch', source: '(1, 2) + (1, 2, 3)' },
   { name: 'compare non-numbers', source: 'true < false' },
+  { name: 'pattern arity mismatch', source: '(\\(a, b, c) -> a) (1, 2)' },
+  { name: 'destructure a number', source: '(\\(a, b) -> a) 5' },
+  { name: 'invert needs an image', source: 'invert 3' },
+  { name: 'mapPx needs an image', source: 'mapPx (\\x -> x) 3' },
 ];
 
 export const evalLocationCases = [
   { name: 'unknown name position', source: 'x = 1\nblurr 2', line: 2, col: 1 },
+];
+
+export const imageCases = [
+  { name: 'input passthrough', source: 'input', at: [1, 0], rgba: [1, 0, 0, 1] },
+  { name: 'invert', source: 'input |> invert', at: [0, 0], rgba: [0.75, 0.5, 0.25, 1] },
+  { name: 'invert keeps alpha', source: 'input |> invert', at: [0, 1], rgba: [1, 0, 0.5, 0.5] },
+  { name: 'mapPx reads uv', source: 'input |> mapPx (\\(uv, c) -> uv.x)', at: [1, 0], rgba: [0.75, 0.75, 0.75, 1] },
+  { name: 'mapPx scales color', source: 'input |> mapPx (\\(_, c) -> c * 0.5)', at: [0, 0], rgba: [0.125, 0.25, 0.375, 1] },
+  { name: 'grayscale', source: 'input |> grayscale', at: [1, 0], rgba: [0.2126, 0.2126, 0.2126, 1] },
+  { name: 'image size preserved', source: 'input |> invert |> grayscale', size: [2, 2] },
+  {
+    name: 'quantize posterizes',
+    source: 'levels = 3\nquantize = \\(uv, c) -> round (c * levels) / levels\ninput |> mapPx quantize',
+    at: [0, 0],
+    rgba: [0.3333, 0.6667, 0.6667, 1],
+  },
 ];
