@@ -1,0 +1,138 @@
+:root {
+  --bg: #14161a;
+  --panel: #1c1f26;
+  --panel-2: #232733;
+  --border: #2e3340;
+  --text: #e6e8ee;
+  --muted: #8b93a7;
+  --accent: #6ea8fe;
+  --error: #ff6b6b;
+  --mono: "SFMono-Regular", "JetBrains Mono", Consolas, "Liberation Mono", monospace;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  height: 100%;
+}
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+
+.app {
+  display: grid;
+  grid-template-columns: minmax(320px, 1fr) minmax(320px, 1fr);
+  gap: 16px;
+  height: 100%;
+  padding: 16px;
+}
+
+.pane {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.pane-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--border);
+  background: var(--panel-2);
+}
+
+.pane-header h1,
+.pane-header h2 {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
+.pane-header h1 {
+  color: var(--accent);
+}
+
+.pane-header h2 {
+  color: var(--muted);
+  text-transform: uppercase;
+}
+
+#editor {
+  flex: 1 1 auto;
+  min-height: 0;
+  padding: 14px;
+  border: 0;
+  resize: none;
+  background: transparent;
+  color: var(--text);
+  font-family: var(--mono);
+  font-size: 13px;
+  line-height: 1.6;
+  tab-size: 2;
+  outline: none;
+}
+
+#run {
+  padding: 6px 14px;
+  border: 1px solid var(--accent);
+  border-radius: 6px;
+  background: transparent;
+  color: var(--accent);
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+#run:hover {
+  background: var(--accent);
+  color: var(--bg);
+}
+
+.log {
+  flex: 0 0 auto;
+  max-height: 40%;
+  margin: 0;
+  padding: 12px 14px;
+  overflow: auto;
+  border-top: 1px solid var(--border);
+  background: #101217;
+  color: var(--muted);
+  font-family: var(--mono);
+  font-size: 12px;
+  line-height: 1.5;
+  white-space: pre-wrap;
+}
+
+.log.is-error {
+  color: var(--error);
+}
+
+.canvas-wrap {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: grid;
+  place-items: center;
+  padding: 16px;
+  overflow: auto;
+}
+
+#output {
+  max-width: 100%;
+  max-height: 100%;
+  image-rendering: pixelated;
+  border-radius: 6px;
+  box-shadow: 0 0 0 1px var(--border);
+}

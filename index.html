@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>shaskell</title>
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <main class="app">
+      <section class="pane editor-pane">
+        <header class="pane-header">
+          <h1>shaskell</h1>
+          <button id="run" type="button">Run</button>
+        </header>
+        <textarea id="editor" spellcheck="false" autocomplete="off">-- shaskell: a functional shader language for images
+input |> invert
+</textarea>
+        <pre id="log" class="log" aria-live="polite"></pre>
+      </section>
+      <section class="pane preview-pane">
+        <header class="pane-header">
+          <h2>output</h2>
+        </header>
+        <div class="canvas-wrap">
+          <canvas id="output"></canvas>
+        </div>
+      </section>
+    </main>
+    <script type="module" src="src/main.js"></script>
+  </body>
+</html>
