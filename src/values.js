@@ -28,8 +28,6 @@ export const isBoolean = (v) => typeof v === 'boolean';
 export const isTuple = (v) => typeof v === 'object' && v !== null && v.type === 'tuple';
 export const isImage = (v) => typeof v === 'object' && v !== null && v.type === 'image';
 export const isWindow = (v) => typeof v === 'object' && v !== null && v.type === 'window';
-export const isCallable = (v) =>
-  typeof v === 'object' && v !== null && (v.type === 'closure' || v.type === 'builtin');
 
 export const SWIZZLE_COMPONENTS = {
   x: 0,

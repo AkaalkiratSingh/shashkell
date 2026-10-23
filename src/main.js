@@ -1,5 +1,5 @@
 import { LangError } from './errors.js';
-import { createImage, drawImage } from './image.js';
+import { createImage, drawImage, loadImageFromFile } from './image.js';
 import { formatValue, isImage } from './values.js';
 import {
   createNotebook,
@@ -12,19 +12,14 @@ import {
   update,
 } from './notebook.js';
 import { PRELUDE } from './prelude.js';
+import { EXAMPLES } from './examples.js';
 
 const STORAGE_KEY = 'shaskell.notebook';
 const PREVIEW_SIZE = 128;
 const FULL_SIZE = 256;
 const UPDATE_DELAY = 180;
 
-const DEFAULT_CELLS = [
-  '-- the library is preloaded: blur, dilate, erode, medianFilter, edges,',
-  '-- threshold, vignette, duotone, pixelate, glitch, zoom',
-  '-- a channel split: sample each colour channel from a different offset',
-  'split = stencil 0 (\\w -> ((at w (64, 0)).g, (at w (0, -64)).r, (center w).r))',
-  'input |> split |> blur 0.006 |> vignette 0.6',
-];
+const DEFAULT_CELLS = EXAMPLES[0].cells;
 
 const cellsEl = document.getElementById('cells');
 const outputCanvas = document.getElementById('output');
@@ -34,23 +29,102 @@ const exportButton = document.getElementById('export');
 const importButton = document.getElementById('import');
 const importFile = document.getElementById('import-file');
 const resetButton = document.getElementById('reset');
+const inputSelect = document.getElementById('input');
+const exampleSelect = document.getElementById('example');
+const uploadFile = document.getElementById('upload-file');
+const appEl = document.querySelector('.app');
 
-const previewInput = makeDefaultImage(PREVIEW_SIZE, PREVIEW_SIZE);
-const fullInput = makeDefaultImage(FULL_SIZE, FULL_SIZE);
+const customInputs = new Map();
+const defaultFull = makeDefaultImage(FULL_SIZE, FULL_SIZE);
+const defaultPreview = makeDefaultImage(PREVIEW_SIZE, PREVIEW_SIZE);
+let currentInputKey = 'default';
+let fullInput = defaultFull;
+let previewInput = defaultPreview;
 
 const cellNodes = new Map();
 let notebook = loadNotebook();
 let renderedIds = [];
 let updateTimer = null;
+let outputImage = null;
+
+function ctxFor(input) {
+  return { input, prelude: PRELUDE };
+}
+
+populateExamples();
+refreshInputSelect();
+
+if (outputCanvas.parentElement) new ResizeObserver(fitOutput).observe(outputCanvas.parentElement);
+if (cellsEl.parentElement) new ResizeObserver(growCells).observe(cellsEl);
 
 render();
 reportPreludeErrors();
 
-const ctxFor = (input) => ({ input, prelude: PRELUDE });
-
 function reportPreludeErrors() {
   const errors = (notebook.env && notebook.env.preludeErrors) || [];
   if (errors.length > 0) showMessage(`library error: ${errors[0].message}`, true);
+}
+
+function populateExamples() {
+  for (const example of EXAMPLES) {
+    const option = document.createElement('option');
+    option.value = example.name;
+    option.textContent = example.name;
+    exampleSelect.appendChild(option);
+  }
+}
+
+function loadExample(name) {
+  const example = EXAMPLES.find((item) => item.name === name);
+  if (!example) return;
+  notebook = createNotebook(example.cells);
+  renderedIds = [];
+  render();
+  save();
+  showMessage(`example: ${example.name}`);
+}
+
+function refreshInputSelect() {
+  inputSelect.replaceChildren();
+
+  const addOption = (value, label) => {
+    const option = document.createElement('option');
+    option.value = value;
+    option.textContent = label;
+    inputSelect.appendChild(option);
+  };
+
+  addOption('default', 'Default gradient');
+  for (const name of customInputs.keys()) addOption(name, name);
+  addOption('custom', 'Load image…');
+
+  inputSelect.value = currentInputKey;
+}
+
+function selectInputSource(key) {
+  const source =
+    key === 'default' ? { full: defaultFull, preview: defaultPreview } : customInputs.get(key);
+  if (!source) return;
+
+  currentInputKey = key;
+  fullInput = source.full;
+  previewInput = source.preview;
+  render();
+  showMessage(`input: ${key === 'default' ? 'default gradient' : key}`);
+}
+
+async function loadInputFile(file) {
+  try {
+    const [full, preview] = await Promise.all([
+      loadImageFromFile(file, FULL_SIZE),
+      loadImageFromFile(file, PREVIEW_SIZE),
+    ]);
+    customInputs.set(file.name, { full, preview });
+    refreshInputSelect();
+    selectInputSource(file.name);
+  } catch (error) {
+    showMessage(`could not load '${file.name}': ${error.message}`, true);
+  }
 }
 
 function loadNotebook() {
@@ -97,12 +171,35 @@ function renderOutputPane() {
   for (let index = results.length - 1; index >= 0; index--) {
     const value = results[index] && results[index].value;
     if (isImage(value)) {
-      drawImage(outputCanvas, value);
+      showOutput(value);
       return;
     }
   }
 
   showMessage('no cell produces an image');
+}
+
+function showOutput(image) {
+  outputImage = image;
+  drawImage(outputCanvas, image);
+  fitOutput();
+}
+
+function fitOutput() {
+  if (!outputImage) return;
+  const wrap = outputCanvas.parentElement;
+  if (!wrap) return;
+
+  const style = getComputedStyle(wrap);
+  const availableWidth =
+    wrap.clientWidth - parseFloat(style.paddingLeft) - parseFloat(style.paddingRight);
+  const availableHeight =
+    wrap.clientHeight - parseFloat(style.paddingTop) - parseFloat(style.paddingBottom);
+  if (!(availableWidth > 0) || !(availableHeight > 0)) return;
+
+  const scale = Math.min(availableWidth / outputImage.width, availableHeight / outputImage.height);
+  outputCanvas.style.width = `${Math.max(1, Math.round(outputImage.width * scale))}px`;
+  outputCanvas.style.height = `${Math.max(1, Math.round(outputImage.height * scale))}px`;
 }
 
 function rebuildCells() {
@@ -113,6 +210,16 @@ function rebuildCells() {
     cellsEl.appendChild(nodes.root);
     cellNodes.set(cell.id, nodes);
   });
+  growCells();
+}
+
+function growCells() {
+  for (const nodes of cellNodes.values()) autoGrow(nodes.input);
+}
+
+function autoGrow(textarea) {
+  textarea.style.height = 'auto';
+  if (textarea.scrollHeight > 0) textarea.style.height = `${textarea.scrollHeight}px`;
 }
 
 function buildCell(cell, index) {
@@ -243,7 +350,7 @@ function renderFullRes(index) {
     return;
   }
   if (result && isImage(result.value)) {
-    drawImage(outputCanvas, result.value);
+    showOutput(result.value);
     showMessage(`cell ${index + 1} rendered at ${result.value.width}x${result.value.height}`);
     return;
   }
@@ -303,6 +410,7 @@ cellsEl.addEventListener('click', (event) => {
 cellsEl.addEventListener('input', (event) => {
   const textarea = event.target.closest('textarea');
   if (!textarea) return;
+  autoGrow(textarea);
   const index = indexOfCell(textarea.closest('.cell').dataset.id);
   if (index === -1) return;
 
@@ -312,6 +420,38 @@ cellsEl.addEventListener('input', (event) => {
     render();
     save();
   }, UPDATE_DELAY);
+});
+
+exampleSelect.addEventListener('change', () => loadExample(exampleSelect.value));
+
+inputSelect.addEventListener('change', () => {
+  if (inputSelect.value === 'custom') {
+    inputSelect.value = currentInputKey;
+    uploadFile.click();
+    return;
+  }
+  selectInputSource(inputSelect.value);
+});
+
+uploadFile.addEventListener('change', () => {
+  const file = uploadFile.files[0];
+  if (file) loadInputFile(file);
+  uploadFile.value = '';
+});
+
+appEl.addEventListener('dragover', (event) => {
+  event.preventDefault();
+  appEl.classList.add('is-dropping');
+});
+
+appEl.addEventListener('dragleave', () => appEl.classList.remove('is-dropping'));
+
+appEl.addEventListener('drop', (event) => {
+  event.preventDefault();
+  appEl.classList.remove('is-dropping');
+  const files = [...(event.dataTransfer ? event.dataTransfer.files : [])];
+  const image = files.find((file) => file.type.startsWith('image/'));
+  if (image) loadInputFile(image);
 });
 
 addButton.addEventListener('click', () => {

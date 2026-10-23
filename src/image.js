@@ -26,6 +26,22 @@ export function drawImage(canvas, image) {
   canvas.getContext('2d').putImageData(imageToImageData(image), 0, 0);
 }
 
+export async function loadImageFromFile(file, maxSize) {
+  const bitmap = await createImageBitmap(file);
+  const scale = Math.min(1, maxSize / Math.max(bitmap.width, bitmap.height));
+  const width = Math.max(1, Math.round(bitmap.width * scale));
+  const height = Math.max(1, Math.round(bitmap.height * scale));
+
+  const canvas = document.createElement('canvas');
+  canvas.width = width;
+  canvas.height = height;
+  const context = canvas.getContext('2d');
+  context.drawImage(bitmap, 0, 0, width, height);
+  if (bitmap.close) bitmap.close();
+
+  return imageFromImageData(context.getImageData(0, 0, width, height));
+}
+
 function clamp01(x) {
   return x < 0 ? 0 : x > 1 ? 1 : x;
 }

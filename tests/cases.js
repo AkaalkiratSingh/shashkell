@@ -260,6 +260,7 @@ export const evalErrorCases = [
   { name: 'debug needs a string label', source: 'debug 1 2' },
   { name: 'sample needs an image', source: 'sample 3 (0, 0)' },
   { name: 'pos needs a window', source: 'pos 1' },
+  { name: 'noise needs a coordinate', source: 'noise 3' },
 ];
 
 export const evalLocationCases = [

@@ -264,6 +264,17 @@ export const builtins = {
     return tuple(items);
   }),
 
+  noise: builtin('noise', 1, ([uv], _ctx, node) => {
+    if (!isTuple(uv) || uv.items.length < 2) errAt(node, 'noise expects a (u, v) coordinate');
+    requireNumber(uv.items[0], 'noise', node);
+    requireNumber(uv.items[1], 'noise', node);
+    const x = Math.round(uv.items[0] * 4096) + 1;
+    const y = Math.round(uv.items[1] * 4096) + 1;
+    let h = Math.imul(x, 374761393) + Math.imul(y, 668265263);
+    h = Math.imul(h ^ (h >>> 13), 1274126177);
+    return ((h ^ (h >>> 16)) >>> 0) / 4294967295;
+  }),
+
   pos: builtin('pos', 1, ([window], _ctx, node) => {
     requireWindow(window, 'pos', node);
     return tuple([window.x, window.y]);

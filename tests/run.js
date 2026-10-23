@@ -29,6 +29,7 @@ import {
   preludeCases,
 } from './cases.js';
 import { PRELUDE } from '../src/prelude.js';
+import { EXAMPLES } from '../src/examples.js';
 
 let passed = 0;
 let failed = 0;
@@ -192,6 +193,22 @@ runPixelCases(preludeCases, stencilInput, { prelude: PRELUDE });
   const labelled = evaluate('debug "hello" input', { input: testInput }).value;
   check('debug labels its image', labelled.label, 'hello');
   check('debug passes the image through', `${labelled.width}x${labelled.height}`, '2x2');
+}
+
+{
+  const sampled = evaluate('noise (0.25, 0.75)', {}).value;
+  const inRange = typeof sampled === 'number' && sampled >= 0 && sampled <= 1;
+  check('noise is a fraction', inRange, true);
+  check('noise is deterministic', evaluate('noise (0.25, 0.75)', {}).value === sampled, true);
+}
+
+for (const example of EXAMPLES) {
+  const notebook = createNotebook(example.cells);
+  const results = update(notebook, { input: stencilInput, prelude: PRELUDE });
+  const broken = results.find((result) => result.error || result.blocked);
+  const detail = broken ? (broken.error ? broken.error.message : 'blocked') : 'ok';
+  check(`example '${example.name}' runs clean`, detail, 'ok');
+  check(`example '${example.name}' ends in an image`, isImage(results[results.length - 1].value), true);
 }
 
 const runsOf = (notebook) => notebook.cells.map((cell) => notebook.runs.get(cell.id) ?? 0);
