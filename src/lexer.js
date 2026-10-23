@@ -31,7 +31,7 @@ const OPERATORS = [
   '\\',
 ];
 
-const PUNCTUATION = new Set(['(', ')', ',', '.']);
+const PUNCTUATION = new Set(['(', ')', ',', '.', ';']);
 
 const isDigit = (c) => c >= '0' && c <= '9';
 const isHexDigit = (c) =>

@@ -139,3 +139,37 @@ export const errorCases = [
   { name: 'short hex color', source: 'a #12' },
   { name: 'unexpected character', source: 'a $ b' },
 ];
+
+export const parserCases = [
+  { name: 'application', source: 'f a b', printed: 'f a b' },
+  { name: 'pipe chain', source: 'a |> f 1 |> g', printed: 'a |> f 1 |> g' },
+  { name: 'lambda', source: '\\x -> x + 1', printed: '\\x -> x + 1' },
+  { name: 'multi-arg lambda', source: '\\a b -> a', printed: '\\a b -> a' },
+  { name: 'let in', source: 'let y = 2 in y * y', printed: 'let y = 2 in y * y' },
+  { name: 'arithmetic precedence', source: 'a + b * c', printed: 'a + b * c' },
+  { name: 'explicit parens kept', source: '(a + b) * c', printed: '(a + b) * c' },
+  { name: 'right-assoc subtraction', source: 'a - (b - c)', printed: 'a - (b - c)' },
+  { name: 'unary minus argument', source: 'f (-1)', printed: 'f (-1)' },
+  { name: 'tuple', source: '(x, y, 0.5)', printed: '(x, y, 0.5)' },
+  { name: 'swizzle', source: 'uv.x + c.yz', printed: 'uv.x + c.yz' },
+  { name: 'if then else', source: 'if a > b then a else b', printed: 'if a > b then a else b' },
+  { name: 'lambda in application', source: 'stencil r (\\w -> mean (neighbors w))', printed: 'stencil r (\\w -> mean (neighbors w))' },
+  { name: 'function declaration', source: 'bright k = mapPx (\\c -> c * k)', printed: 'bright k = mapPx (\\c -> c * k)' },
+  { name: 'let declaration', source: 'let r = 0.004', printed: 'let r = 0.004' },
+  { name: 'value declaration', source: 'r = 0.004', printed: 'r = 0.004' },
+  { name: 'pipeline declaration', source: 'pipeline sketch(img, detail) = img |> grayscale |> edges detail', printed: 'pipeline sketch(img, detail) = img |> grayscale |> edges detail' },
+  {
+    name: 'layout separates statements',
+    source: 'blur r = stencil r\ninput |> blur 0.004',
+    printed: 'blur r = stencil r\ninput |> blur 0.004',
+  },
+  { name: 'semicolon separator', source: 'a = 1; b = 2; a + b', printed: 'a = 1\nb = 2\na + b' },
+];
+
+export const parserErrorCases = [
+  { name: 'incomplete lambda', source: '\\x ->' },
+  { name: 'pipeline without parens', source: 'pipeline sketch = 1' },
+  { name: 'unclosed paren', source: '(a + b' },
+  { name: 'invalid declaration target', source: '1 + 2 = 3' },
+  { name: 'missing else', source: 'if a then b' },
+];
