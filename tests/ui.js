@@ -184,6 +184,15 @@ check(
   `got ${cellTextarea.style.height}`,
 );
 
+const log = byId('log');
+log.textContent = 'no cell produces an image';
+byId('add').click();
+check(
+  'a stale "no image" notice clears once an image renders',
+  log.textContent === '',
+  `got ${JSON.stringify(log.textContent)}`,
+);
+
 for (const option of select.children) {
   safely(`loading the '${option.value}' example works`, () => {
     select.value = option.value;

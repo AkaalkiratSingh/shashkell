@@ -18,6 +18,7 @@ const STORAGE_KEY = 'shaskell.notebook';
 const PREVIEW_SIZE = 128;
 const FULL_SIZE = 256;
 const UPDATE_DELAY = 180;
+const NO_IMAGE_MESSAGE = 'no cell produces an image';
 
 const DEFAULT_CELLS = EXAMPLES[0].cells;
 
@@ -176,13 +177,14 @@ function renderOutputPane() {
     }
   }
 
-  showMessage('no cell produces an image');
+  showMessage(NO_IMAGE_MESSAGE);
 }
 
 function showOutput(image) {
   outputImage = image;
   drawImage(outputCanvas, image);
   fitOutput();
+  if (log.textContent === NO_IMAGE_MESSAGE) showMessage('');
 }
 
 function fitOutput() {
